@@ -4,6 +4,7 @@ import (
 	"database/sql"
 	"encoding/json"
 	"log"
+	"log/slog"
 	"net/http"
 	"time"
 )
@@ -19,11 +20,13 @@ type listing struct {
 
 type ListingHandler struct {
 	db *sql.DB
+	logger *slog.Logger
 }
 
-func NewListingHandler(db *sql.DB) *ListingHandler {
+func NewListingHandler(db *sql.DB, logger *slog.Logger) *ListingHandler {
 	return &ListingHandler{
 		db: db,
+		logger: logger,
 	}
 }
 
@@ -35,7 +38,7 @@ func (lh ListingHandler) List(w http.ResponseWriter, r *http.Request) {
 			ORDER BY created_at DESC
 			LIMIT 100`)
 	if err != nil {
-		log.Printf("query: %v", err)
+		lh.logger.Error("listings query error", "err", err)
 		http.Error(w, "internal error", http.StatusInternalServerError)
 		return
 	}
@@ -49,11 +52,12 @@ func (lh ListingHandler) List(w http.ResponseWriter, r *http.Request) {
 			http.Error(w, "internal error", http.StatusInternalServerError)
 			return
 		}
+		lh.logger.Info("listings fetched", "total", len(listings))
 		listings = append(listings, l)
 	}
 
 	if err := rows.Err(); err != nil {
-		log.Printf("rows.err %v", err)
+		lh.logger.Error("rows scan error", "err", err)
 		http.Error(w, "internal error", http.StatusInternalServerError)
 		return
 	}
@@ -72,7 +76,7 @@ func (lh ListingHandler) Delete(w http.ResponseWriter, r *http.Request) {
 		`DELETE FROM listings WHERE id = $1`, id)
 
 	if err != nil {
-		log.Printf("delete %v", err)
+		lh.logger.Error("delete failed", "listing_id", id, "err", err)
 		http.Error(w, "internal error", http.StatusInternalServerError)
 		return
 	}
