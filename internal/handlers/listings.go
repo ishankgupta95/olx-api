@@ -8,6 +8,7 @@ import (
 	"net/http"
 	"time"
 
+	"github.com/ishankgupta95/olx-api/internal/httpx"
 	"github.com/ishankgupta95/olx-api/internal/middleware"
 )
 
@@ -80,7 +81,8 @@ func (lh ListingHandler) Delete(w http.ResponseWriter, r *http.Request) {
 
 	if err != nil {
 		lh.logger.Error("delete failed", "listing_id", id, "requestId", requestId, "err", err)
-		http.Error(w, "internal error", http.StatusInternalServerError)
+		// http.Error(w, "internal error", http.StatusInternalServerError)
+		httpx.Error(w, http.StatusInternalServerError, "Something went wrong", httpx.CodeInternalError)
 		return
 	}
 
